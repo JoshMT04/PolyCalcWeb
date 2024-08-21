@@ -1,0 +1,491 @@
+
+{% extends "layout.html" %}
+{% block ExtraHead %}
+    <title>PolyStrat - Attack</title> 
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+{% endblock ExtraHead %}
+{% block ExtraStyle %}
+    <style>
+        .btn.small {
+            width: 50px;
+            height: 30px;
+            font-size: 12px;
+            background-color: #00CED1;
+        }
+        
+        .btn.medium {
+            width: 50px;
+            height: 30px;
+            font-size: 12px;
+            background-color: #6495ED;
+        }
+        
+        .btn.large {
+            width: 50px;
+            height: 30px;
+            font-size: 12px;
+            background-color: 008B8B;
+        } 
+    </style>
+{% endblock ExtraStyle %}
+{% block ExtraBody %}
+    <div class="container mt-5">
+        <h1 class="mb-4 text-center">Select the Attacking and Defending Units</h1>
+        <div class="row">
+            <!-- Attackers Section -->
+            <div class="col-md-6">
+                <div class="text-center section-title">Select Attackers</div>
+                <div class="row">
+                    {% for image, name in attack_images.items() %}
+                        <div class="col-2 mb-3">
+                            <img src="/static/{{ image }}" alt="{{ name }}" class="img-thumbnail" onclick="selectAttacker('{{ image }}')">
+                        </div>
+                        {% if loop.index % 5 == 0 %}
+                            </div><div class="row">
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <div id="attackers-area" class="mt-4">
+                    <p class="section-title">Selected Attackers:</p>
+                </div>
+                <input type="hidden" id="attackers-list" name="attackers" value="">
+            </div>
+            <!-- Defenders Section -->
+            <div class="col-md-6">
+                <div class="text-center section-title">Select Defenders</div>
+                <div class="row">
+                    {% for image, name in defence_images.items() %}
+                        <div class="col-2 mb-3">
+                            <img src="/static/{{ image }}" alt="{{ name }}" class="img-thumbnail" onclick="selectDefender('{{ image }}')">
+                        </div>
+                        {% if loop.index % 5 == 0 %}
+                            </div><div class="row">
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <div id="defenders-area" class="mt-4">
+                    <p class="section-title">Selected Defenders:</p>
+                </div>
+                <input type="hidden" id="defenders-list" name="defenders" value="">
+            </div>
+        </div>
+    </div>
+    <div class="form-group">
+        <button type="submit" class="btn btn-primary ml-5" onclick="sendData()">Submit</button>
+    </div>
+    <div id="result">
+        <div class="sublist-container">
+            <h3>Attack 1</h3>
+            <p><strong>Attacker:</strong> x </p>
+            <p><strong>Defender Targeted:</strong> x </p>
+            <p><strong>Attacker Starting Health:</strong> x </p>
+            <p><strong>Attacker Ending Health:</strong> x </p>
+            <p><strong>Defender Health After All Attacks:</strong> x </p>
+        </div>
+        <div class="sublist-container">
+            <h3>Attack 2</h3>
+            <p><strong>Attacker:</strong> x </p>
+            <p><strong>Defender Targeted:</strong> x </p>
+            <p><strong>Attacker Starting Health:</strong> x </p>
+            <p><strong>Attacker Ending Health:</strong> x</p>
+            <p><strong>Defender Health After All Attacks:</strong> x </p>
+        </div>
+    </div>    
+{% endblock ExtraBody %}
+{% block JavaScript %}
+    <script> 
+        
+        let selectedAttackers = [];
+        let selectedDefenders = [];
+        let selectedAttackersImages = [];
+        let selectedDefendersImages = [];
+        let attackerCounters = {};
+        let defenderCounters = {};
+
+        let selectedAttackersHealth = {};
+        let selectedDefendersHealth = {};
+
+        let selectedAttackersVeteranStatus = {};
+        let selectedDefendersVeteranStatus = {};
+
+        let selectedDefendersDefenseBonusStatus = {};
+        let selectedDefendersWallBonusStatus = {};
+
+        let selectedAttackersSplashStatus = {};
+        let selectedAttackersSafeStatus = {};
+        let selectedAttackersAttackChainStatus = {};
+        let selectedAttackersBoostedStatus = {};
+        let selectedAttackersExplodeStatus = {};
+
+        let selectedAttackersNavalMaxHealth = {};
+        let selectedDefendersNavalMaxHealth = {};
+
+        let selectedAttackersTentacles = {};
+        let selectedDefendersTentacles = {};
+
+        let selectedDefendersPoison = {};
+
+        function selectAttacker(imageName) {
+            if (!attackerCounters[imageName]) {
+                attackerCounters[imageName] = 1;
+            } else {
+                attackerCounters[imageName]++;
+            }
+            const uniqueName = `${imageName}-${attackerCounters[imageName]}`;
+            selectedAttackersImages.push(imageName);
+            selectedAttackers.push(uniqueName);
+            selectedAttackersVeteranStatus[uniqueName] = false;
+            selectedAttackersSplashStatus[uniqueName] = false;
+            selectedAttackersSafeStatus[uniqueName] = false;
+            selectedAttackersAttackChainStatus[uniqueName] = false;
+            selectedAttackersBoostedStatus[uniqueName] = false;
+            selectedAttackersExplodeStatus[uniqueName] = false;
+            selectedAttackersTentacles[uniqueName] = false;
+            if (['attacker13.png', 'attacker14.png', 'attacker15.png', 'attacker16.png'].includes(imageName)) {
+                selectedAttackersNavalMaxHealth[uniqueName] = 10;
+            }
+            updateSelectedImages('attackers');
+        }
+        
+        function selectDefender(imageName) {
+            if (!defenderCounters[imageName]) {
+                defenderCounters[imageName] = 1;
+            } else {
+                defenderCounters[imageName]++;
+            }
+            const uniqueName = `${imageName}-${defenderCounters[imageName]}`;
+            selectedDefendersImages.push(imageName);
+            selectedDefenders.push(uniqueName);
+            selectedDefendersVeteranStatus[uniqueName] = false;
+            selectedDefendersDefenseBonusStatus[uniqueName] = false;
+            selectedDefendersWallBonusStatus[uniqueName] = false;
+            selectedDefendersTentacles[uniqueName] = false;
+            selectedDefendersPoison[uniqueName] = false;
+            if (['defender13.png', 'defender14.png', 'defender15.png', 'defender16.png'].includes(imageName)) {
+                selectedDefendersNavalMaxHealth[uniqueName] = 10;
+            }
+            updateSelectedImages('defenders');
+        }
+
+        function updateHealth(type, index, health) {
+            if (type === 'attackers') {
+                image_name = selectedAttackers[index];
+                selectedAttackersHealth[image_name] = health;
+            } else if (type === 'defenders') {
+                image_name = selectedDefenders[index];
+                selectedDefendersHealth[image_name] = health;
+            }
+        }
+
+        function toggleVeteranStatus(type, index) {
+            const image_name = type === 'attackers' ? selectedAttackers[index] : selectedDefenders[index];
+            if (type === 'attackers') {
+                selectedAttackersVeteranStatus[image_name] = !selectedAttackersVeteranStatus[image_name];
+            } else if (type === 'defenders') {
+                selectedDefendersVeteranStatus[image_name] = !selectedDefendersVeteranStatus[image_name];
+            }
+            updateButtonColor(type, index);
+        }
+
+        function toggleTentacleStatus(type, index) {
+            const image_name = type === 'attackers' ? selectedAttackers[index] : selectedDefenders[index];
+            if (type === 'attackers') {
+                selectedAttackersTentacles[image_name] = !selectedAttackersTentacles[image_name];
+            } else if (type === 'defenders') {
+                selectedDefendersTentacles[image_name] = !selectedDefendersTentacles[image_name];
+            }
+            updateButtonColor(type, index);
+        }
+
+        function toggleDefenseBonusStatus(index) {
+            const image_name = selectedDefenders[index];
+            selectedDefendersDefenseBonusStatus[image_name] = !selectedDefendersDefenseBonusStatus[image_name];
+            updateButtonColor('defenders', index);
+        }
+        
+        function toggleWallBonusStatus(index) {
+            const image_name = selectedDefenders[index];
+            selectedDefendersWallBonusStatus[image_name] = !selectedDefendersWallBonusStatus[image_name];
+            updateButtonColor('defenders', index);
+        }
+
+        function toggleSplashStatus(index) {
+            const image_name = selectedAttackers[index];
+            selectedAttackersSplashStatus[image_name] = !selectedAttackersSplashStatus[image_name];
+            updateButtonColor('attackers', index);
+        }
+        
+        function toggleSafeStatus(index) {
+            const image_name = selectedAttackers[index];
+            selectedAttackersSafeStatus[image_name] = !selectedAttackersSafeStatus[image_name];
+            updateButtonColor('attackers', index);
+        }
+        
+        function toggleAttackChainStatus(index) {
+            const image_name = selectedAttackers[index];
+            selectedAttackersAttackChainStatus[image_name] = !selectedAttackersAttackChainStatus[image_name];
+            updateButtonColor('attackers', index);
+        }
+        
+        function toggleBoostedStatus(index) {
+            const image_name = selectedAttackers[index];
+            selectedAttackersBoostedStatus[image_name] = !selectedAttackersBoostedStatus[image_name];
+            updateButtonColor('attackers', index);
+        }
+
+        function toggleExplodeStatus(index) {
+            const image_name = selectedAttackers[index];
+            selectedAttackersExplodeStatus[image_name] = !selectedAttackersExplodeStatus[image_name];
+            updateButtonColor('attackers', index);
+        }
+
+        function togglePoisonStatus(index) {
+            const image_name = selectedDefenders[index];
+            selectedDefendersPoison[image_name] = !selectedDefendersPoison[image_name];
+            updateButtonColor('defenders', index);
+        }
+
+        function toggleNavalMaxHealth(type, index) {
+            let imageName;
+            if (type === 'attackers') {
+                imageName = selectedAttackers[index];
+            } else {
+                imageName = selectedDefenders[index];
+            }
+        
+            let currentValue;
+            if (type === 'attackers') {
+                currentValue = selectedAttackersNavalMaxHealth[imageName];
+            } else {
+                currentValue = selectedDefendersNavalMaxHealth[imageName];
+            }
+
+            if (currentValue === 10) {
+                currentValue = 15;
+                document.getElementById(`${type}-naval-btn-${index}`).className = 'btn btn-info btn-sm medium';
+            } else if (currentValue === 15) {
+                currentValue = 20;
+                document.getElementById(`${type}-naval-btn-${index}`).className = 'btn btn-info btn-sm large';
+            } else {
+                currentValue = 10;
+                document.getElementById(`${type}-naval-btn-${index}`).className = 'btn btn-info btn-sm small';
+            }
+
+            if (type === 'attackers') {
+                selectedAttackersNavalMaxHealth[imageName] = currentValue;
+            } else {
+                selectedDefendersNavalMaxHealth[imageName] = currentValue;
+            }
+
+            document.getElementById(`${type}-naval-btn-${index}`).textContent = currentValue;
+        }
+
+        function updateButtonColor(type, index) {
+            if (type === 'attackers') {
+                const image_name = selectedAttackers[index];
+                const isVeteran = selectedAttackersVeteranStatus[image_name];
+                const splashStatus = selectedAttackersSplashStatus[image_name];
+                const safeStatus = selectedAttackersSafeStatus[image_name];
+                const attackChainStatus = selectedAttackersAttackChainStatus[image_name];
+                const boostedStatus = selectedAttackersBoostedStatus[image_name];
+                const explodeStatus = selectedAttackersExplodeStatus[image_name];
+                const isTentacle = selectedAttackersTentacles[image_name];
+        
+                const veteranButton = document.getElementById(`attackers-veteran-btn-${index}`);
+                const splashButton = document.getElementById(`attackers-splash-btn-${index}`);
+                const safeButton = document.getElementById(`attackers-safe-btn-${index}`);
+                const attackChainButton = document.getElementById(`attackers-attackchain-btn-${index}`);
+                const boostedButton = document.getElementById(`attackers-boosted-btn-${index}`);
+                const explodeButton = document.getElementById(`attackers-explode-btn-${index}`);
+                const tentacleButton = document.getElementById(`attackers-tentacle-btn-${index}`);
+        
+                if (veteranButton) veteranButton.className = `btn ${isVeteran ? 'btn-success' : 'btn-danger'} btn-sm`;
+                if (splashButton) splashButton.className = `btn ${splashStatus ? 'btn-success' : 'btn-danger'} btn-sm`;
+                if (safeButton) safeButton.className = `btn ${safeStatus ? 'btn-success' : 'btn-danger'} btn-sm`;
+                if (attackChainButton) attackChainButton.className = `btn ${attackChainStatus ? 'btn-success' : 'btn-danger'} btn-sm`;
+                if (boostedButton) boostedButton.className = `btn ${boostedStatus ? 'btn-success' : 'btn-danger'} btn-sm`;
+                if (explodeButton) explodeButton.className = `btn ${explodeStatus ? 'btn-success' : 'btn-danger'} btn-sm`;
+                if (tentacleButton) tentacleButton.className = `btn ${isTentacle ? 'btn-success' : 'btn-danger'} btn-sm`;
+            } else if (type === 'defenders') {
+                const image_name = selectedDefenders[index];
+                const isVeteran = selectedDefendersVeteranStatus[image_name];
+                const defenseBonus = selectedDefendersDefenseBonusStatus[image_name];
+                const wallBonus = selectedDefendersWallBonusStatus[image_name];
+                const isTentacle = selectedDefendersTentacles[image_name];
+                const isPoison = selectedDefendersPoison[image_name];
+        
+                const veteranButton = document.getElementById(`defenders-veteran-btn-${index}`);
+                const defenseButton = document.getElementById(`defenders-defense-btn-${index}`);
+                const wallButton = document.getElementById(`defenders-wall-btn-${index}`);
+                const tentacleButton = document.getElementById(`defenders-tentacle-btn-${index}`);
+                const poisonButton = document.getElementById(`defenders-poison-btn-${index}`);
+        
+                if (veteranButton) veteranButton.className = `btn ${isVeteran ? 'btn-success' : 'btn-danger'} btn-sm`;
+                if (defenseButton) defenseButton.className = `btn ${defenseBonus ? 'btn-success' : 'btn-danger'} btn-sm`;
+                if (wallButton) wallButton.className = `btn ${wallBonus ? 'btn-success' : 'btn-danger'} btn-sm`;
+                if (tentacleButton) tentacleButton.className = `btn ${isTentacle ? 'btn-success' : 'btn-danger'} btn-sm`;
+                if (poisonButton) poisonButton.className = `btn ${isPoison ? 'btn-success' : 'btn-danger'} btn-sm`;
+            }
+        }
+
+        function updateSelectedImages(type) {
+            let area, selectedImages, hiddenFieldId;
+            if (type === 'attackers') {
+                area = document.getElementById('attackers-area');
+                selectedImages = selectedAttackersImages;
+                hiddenFieldId = 'attackers-list';
+            } else if (type === 'defenders') {
+                area = document.getElementById('defenders-area');
+                selectedImages = selectedDefendersImages;
+                hiddenFieldId = 'defenders-list';
+            }
+        
+            area.innerHTML = `<p class="section-title">Selected ${type.charAt(0).toUpperCase() + type.slice(1)}:</p>`;
+            selectedImages.forEach((image, index) => {
+                const image_name = image.split('-')[0];
+                const div = document.createElement('div');
+                div.className = 'selected-image position-relative d-inline-block';
+                div.innerHTML = `
+                    <img src="/static/${image}" alt="${image}" class="img-thumbnail selected-img">
+                    <input type="number" class="health-input form-control form-control-sm" placeholder="Health" required oninput="updateHealth('${type}', ${index}, this.value)">
+                    ${type === 'attackers' && ['attacker13.png', 'attacker14.png', 'attacker15.png', 'attacker16.png'].includes(image_name) ? `
+                        <button id="${type}-naval-btn-${index}" type="button" class="btn btn-info btn-sm small" onclick="toggleNavalMaxHealth('${type}', ${index})">10</button>
+                    ` : ''}
+                    ${type === 'defenders' && ['defender13.png', 'defender14.png', 'defender15.png', 'defender16.png'].includes(image_name) ? `
+                        <button id="${type}-naval-btn-${index}" type="button" class="btn btn-info btn-sm small" onclick="toggleNavalMaxHealth('${type}', ${index})">10</button>
+                    ` : ''}
+                    ${type === 'attackers' ? `
+                        <button id="attackers-veteran-btn-${index}" type="button" class="btn ${selectedAttackersVeteranStatus[image] ? 'btn-success' : 'btn-danger'} btn-sm" onclick="toggleVeteranStatus('attackers', ${index})">Veteran</button>
+                        ${['attacker26.png'].includes(image_name) ? `
+                            <button id="attackers-tentacle-btn-${index}" type="button" class="btn ${selectedAttackersTentacles[image] ? 'btn-success' : 'btn-danger'} btn-sm" onclick="toggleTentacleStatus('attackers', ${index})">Tentacle</button>
+                        ` : ''}
+                        ${['attacker16.png', 'attacker17.png', 'attacker36.png', 'attacker47.png'].includes(image_name) ? `
+                            <button id="attackers-splash-btn-${index}" type="button" class="btn ${selectedAttackersSplashStatus[image] ? 'btn-success' : 'btn-danger'} btn-sm" onclick="toggleSplashStatus(${index})">Splash</button>
+                        ` : ''}
+                        <button id="attackers-safe-btn-${index}" type="button" class="btn ${selectedAttackersSafeStatus[image] ? 'btn-success' : 'btn-danger'} btn-sm" onclick="toggleSafeStatus(${index})">Safe</button>
+                        ${['attacker10.png', 'attacker31.png'].includes(image_name) ? `
+                            <button id="attackers-attackchain-btn-${index}" type="button" class="btn ${selectedAttackersAttackChainStatus[image] ? 'btn-success' : 'btn-danger'} btn-sm" onclick="toggleAttackChainStatus(${index})">Attack Chain</button>
+                        ` : ''}
+                        <button id="attackers-boosted-btn-${index}" type="button" class="btn ${selectedAttackersBoostedStatus[image] ? 'btn-success' : 'btn-danger'} btn-sm" onclick="toggleBoostedStatus(${index})">Boosted</button>
+                        ${['attacker48.png'].includes(image_name) ? `
+                            <button id="attackers-explode-btn-${index}" type="button" class="btn ${selectedAttackersExplodeStatus[image] ? 'btn-success' : 'btn-danger'} btn-sm" onclick="toggleExplodeStatus(${index})">Explode</button>
+                        ` : ''}
+                    ` : `
+                        <button id="defenders-veteran-btn-${index}" type="button" class="btn ${selectedDefendersVeteranStatus[image] ? 'btn-success' : 'btn-danger'} btn-sm" onclick="toggleVeteranStatus('defenders', ${index})">Veteran</button>
+                        <button id="defenders-defense-btn-${index}" type="button" class="btn ${selectedDefendersDefenseBonusStatus[image] ? 'btn-success' : 'btn-danger'} btn-sm" onclick="toggleDefenseBonusStatus(${index})">Defense Bonus</button>
+                        <button id="defenders-wall-btn-${index}" type="button" class="btn ${selectedDefendersWallBonusStatus[image] ? 'btn-success' : 'btn-danger'} btn-sm" onclick="toggleWallBonusStatus(${index})">Wall Bonus</button>
+                        <button id="defenders-poison-btn-${index}" type="button" class="btn ${selectedDefendersPoison[image] ? 'btn-success' : 'btn-danger'} btn-sm" onclick="togglePoisonStatus(${index})">Poison</button>
+                        ${['defender26.png'].includes(image_name) ? `
+                            <button id="defenders-tentacle-btn-${index}" type="button" class="btn ${selectedDefendersTentacles[image] ? 'btn-success' : 'btn-danger'} btn-sm" onclick="toggleTentacleStatus('attackers', ${index})">Tentacle</button>
+                        ` : ''}
+                    `}
+                    <button type="button" class="delete-button btn btn-danger btn-sm" onclick="deleteImage('${type}', ${index})">&times;</button>
+                `;
+                area.appendChild(div);
+            });
+        
+            document.getElementById(hiddenFieldId).value = selectedImages.join(',');
+        }
+
+        function deleteImage(type, index) {
+            let image_name;
+
+            if (type === 'attackers') {
+                image_name = selectedAttackers[index];
+                selectedAttackers.splice(index, 1);
+                selectedAttackersImages.splice(index, 1);
+                delete selectedAttackersVeteranStatus[image_name];
+                delete selectedAttackersSplashStatus[image_name];
+                delete selectedAttackersSafeStatus[image_name];
+                delete selectedAttackersAttackChainStatus[image_name];
+                delete selectedAttackersBoostedStatus[image_name];
+                delete selectedAttackersExplodeStatus[image_name];
+                delete selectedAttackersNavalMaxHealth[image_name];
+                delete selectedAttackersTentacles[image_name];
+                updateSelectedImages('attackers');
+            } else if (type === 'defenders') {
+                image_name = selectedDefenders[index];
+                selectedDefenders.splice(index, 1);
+                selectedDefendersImages.splice(index, 1);
+                delete selectedDefendersVeteranStatus[image_name];
+                delete selectedDefendersDefenseBonusStatus[image_name];
+                delete selectedDefendersWallBonusStatus[image_name];
+                delete selectedDefendersNavalMaxHealth[image_name];
+                delete selectedDefendersTentacles[image_name];
+                delete selectedDefendersPoison[image_name];
+                updateSelectedImages('defenders');
+            }
+        }
+        
+
+        function sendData() { 
+            $.ajax({ 
+                url: '/process', 
+                type: 'POST', 
+                contentType: 'application/json', 
+                data: JSON.stringify({ 
+                    'attackers': selectedAttackers,
+                    'defenders': selectedDefenders, 
+                    'attackers_health': selectedAttackersHealth, 
+                    'defenders_health': selectedDefendersHealth, 
+                    'attackers_veteran': selectedAttackersVeteranStatus, 
+                    'defenders_veteran': selectedDefendersVeteranStatus,
+                    'defenders_defense_bonus': selectedDefendersDefenseBonusStatus,
+                    'defenders_wall_bonus': selectedDefendersWallBonusStatus,
+                    'attackers_splash': selectedAttackersSplashStatus,
+                    'attackers_safe': selectedAttackersSafeStatus,
+                    'attackers_chain': selectedAttackersAttackChainStatus,
+                    'attackers_boost': selectedAttackersBoostedStatus,
+                    'attackers_explode': selectedAttackersExplodeStatus,
+                    'attackers_naval_max_health': selectedAttackersNavalMaxHealth,
+                    'defenders_naval_max_health': selectedDefendersNavalMaxHealth,
+                    'attackers_tentacles': selectedAttackersTentacles,
+                    'defenders_tentacles': selectedDefendersTentacles,
+                    'defenders_poison': selectedDefendersPoison
+                }), 
+                success: function(response) { 
+                    let resultContainer = document.getElementById('result');
+                    resultContainer.innerHTML = ''; // Clear any existing content
+                
+                    response.result.forEach(function(sublist, index) {
+                        // Create a new div to contain each sublist
+                        let sublistContainer = document.createElement('div');
+                        sublistContainer.className = 'sublist-container'; // Add a class for styling if needed
+                
+                        // Optionally create a title for each sublist
+                        let sublistTitle = document.createElement('h3');
+                        sublistTitle.innerText = 'Unit ' + (index + 1);
+                        sublistContainer.appendChild(sublistTitle);
+                
+                        // Create paragraphs for each element in the sublist
+                        let unitType = document.createElement('p');
+                        unitType.innerHTML = `<strong>Unit Type:</strong> ${sublist[0]}`;
+                        sublistContainer.appendChild(unitType);
+                
+                        let unitName = document.createElement('p');
+                        unitName.innerHTML = `<strong>Unit Name:</strong> ${sublist[1]}`;
+                        sublistContainer.appendChild(unitName);
+                
+                        let health = document.createElement('p');
+                        health.innerHTML = `<strong>Health:</strong> ${sublist[2]}`;
+                        sublistContainer.appendChild(health);
+                
+                        let damage = document.createElement('p');
+                        damage.innerHTML = `<strong>Damage:</strong> ${sublist[3]}`;
+                        sublistContainer.appendChild(damage);
+                
+                        let bonus = document.createElement('p');
+                        bonus.innerHTML = `<strong>Bonus:</strong> ${sublist[4]}`;
+                        sublistContainer.appendChild(bonus);
+                
+                        // Append the sublist container to the result container
+                        resultContainer.appendChild(sublistContainer);
+                    });
+                },
+                error: function(xhr, status, error) { 
+                    console.error('Error:', error); 
+                } 
+            }); 
+        }
+    </script> 
+{% endblock JavaScript %}
