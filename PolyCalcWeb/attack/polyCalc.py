@@ -1,5 +1,3 @@
-import os
-os.chdir('C:/Users/joshm/OneDrive - Imperial College London/Computational Projects/PolyCalc/WebPage/PolyCalcWeb/attack')
 
 import unitClasses as uc
 from calcFunctions import *
